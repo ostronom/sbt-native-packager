@@ -6,7 +6,8 @@ libraryDependencies ++= Seq(
 
 mainClass in Compile := Some("ExampleApp")
 
-enablePlugins(JavaServerAppPackaging, JDebPackaging)
+enablePlugins(JavaLibPackaging, JDebPackaging)
+javaLibraryPath in Debian := Some(s"/usr/lib/${packageName.value}")
 
 maintainer := "Josh Suereth <joshua.suereth@typesafe.com>"
 packageSummary := "Minimal Native Packager"
@@ -17,11 +18,5 @@ packageDescription := """A fun package description of our software,
 rpmVendor := "typesafe"
 rpmLicense := Some("BSD")
 rpmChangelogFile := Some("changelog.txt")
-
-// these settings are conflicting
-javaOptions in Universal ++= Seq(
-  "-J-Xmx64m", "-J-Xms64m",
-  "-jvm-debug 12345"
-)
 
 //bashScriptConfigLocation := Some("${app_home}/../conf/jvmopts")

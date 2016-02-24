@@ -6,7 +6,7 @@ import sbt._
  * Available settings/tasks for the [[com.typesafe.sbt.packager.archetypes.JavaAppPackaging]]
  * and all depending archetypes.
  */
-trait JavaAppKeys {
+trait JavaAppKeys extends JavaProjectKeys {
 
   val makeBashScript = TaskKey[Option[File]]("makeBashScript", "Creates or discovers the bash script used by this project.")
   val bashScriptTemplateLocation = TaskKey[File]("bashScriptTemplateLocation", "The location of the bash script template.")
@@ -16,7 +16,6 @@ trait JavaAppKeys {
   val bashScriptEnvConfigLocation = SettingKey[Option[String]]("bashScriptEnvConfigLocation", "The location of a bash script that will be sourced before running the app.")
   val batScriptExtraDefines = TaskKey[Seq[String]]("batScriptExtraDefines", "A list of extra definitions that should be written to the bat file template.")
   val scriptClasspathOrdering = TaskKey[Seq[(File, String)]]("scriptClasspathOrdering", "The order of the classpath used at runtime for the bat/bash scripts.")
-  val projectDependencyArtifacts = TaskKey[Seq[Attributed[File]]]("projectDependencyArtifacts", "The set of exported artifacts from our dependent projects.")
   val scriptClasspath = TaskKey[Seq[String]]("scriptClasspath", "A list of relative filenames (to the lib/ folder in the distribution) of what to include on the classpath.")
   val makeBatScript = TaskKey[Option[File]]("makeBatScript", "Creates or discovers the bat script used by this project.")
   val batScriptTemplateLocation = TaskKey[File]("batScriptTemplateLocation", "The location of the bat script template.")

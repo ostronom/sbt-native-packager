@@ -56,7 +56,7 @@ object JavaAppPackaging extends AutoPlugin with JavaAppStartScript {
     // we can use its order to generate the bash/bat scripts.
     scriptClasspathOrdering := Nil,
     // Note: This is sometimes on the classpath via dependencyClasspath in Runtime.
-    // We need to figure out why sometimes the Attributed[File] is corrrectly configured
+    // We need to figure out why sometimes the Attributed[File] is correctly configured
     // and sometimes not.
     scriptClasspathOrdering <+= (Keys.packageBin in Compile, Keys.projectID, Keys.artifact in Compile in Keys.packageBin) map { (jar, id, art) =>
       jar -> ("lib/" + makeJarName(id.organization, id.name, id.revision, art.name, art.classifier))

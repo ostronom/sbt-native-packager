@@ -1,0 +1,5 @@
+# Run the debian packaging.
+> debian:package-bin
+$ exists target/debian-lib-test_0.1.0_all.deb
+> stage
+
