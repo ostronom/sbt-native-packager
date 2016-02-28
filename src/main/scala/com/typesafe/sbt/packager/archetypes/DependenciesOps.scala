@@ -17,24 +17,9 @@ trait DependenciesOps extends JarsOps {
 
   private def normalizeLocation(location: String) = if (location.endsWith("/")) location else location + "/"
 
-  def javaLibsAbsolutePath: Def.Initialize[Def.Initialize[Task[Seq[String]]]] =
-    (sbt.Keys.buildDependencies, sbt.Keys.thisProjectRef, sbt.Keys.state) apply { (build, thisProject, stateTask) =>
-      val projectDeps = dependencyProjectRefs(build, thisProject)
-      val seqInit = projectDeps map { ref =>
-        Def.task {
-          val include = projectHaveEnabledAppLibPlugin(stateTask, ref).value
-          if (include) javaLibAbsoluteClassPath(ref).value else Seq.empty[String]
-        }
-      }
-      Def.uniform(seqInit) { tasks =>
-        tasks.foldLeft(task(Seq.empty[String])) { (acc, el) =>
-          for {
-            a <- acc
-            e <- el
-          } yield a ++ e
-        }
-      }
-    }
+  def javaLibsProjects(build: BuildDependencies, thisProject: ProjectRef, extState: Extracted): Seq[ProjectRef] = {
+    dependencyProjectRefs(build, thisProject) filter (ref => projectHaveEnabledAppLibPlugin(extState, ref))
+  }
 
   //  val javaLibProjectsAbsoluteClassPath: Def.Initialize[Task[Seq[String]]] = depProjects.foldLeft(zero) { (acc, ref) =>
   //    for {
@@ -75,12 +60,9 @@ trait DependenciesOps extends JarsOps {
   //        x
   //      }
 
-  def javaLibAbsoluteClassPath(ref: ProjectRef): Def.Initialize[Task[Seq[String]]] = {
-    import JavaLibPackaging.autoImport._
-    (javaLibraryPath in ref, (dependencyClasspath in Runtime) in ref) apply { (libLocation, runtimeDeps) =>
-      val location = normalizeLocation(libLocation.get) //todo: remove unsafe get
-      for (deps <- runtimeDeps) yield deps map (dep => location + getJarFullFilename(dep))
-    }
+  def javaLibAbsoluteClassPath(libLocation: Option[String], runtimeDeps: Classpath): Seq[String] = {
+    val location = normalizeLocation(libLocation.get) //todo: remove unsafe get
+    runtimeDeps map (dep => location + getJarFullFilename(dep))
   }
 
   // get artifacts produced by this project. only jars; NO sources, NO docs, NO pom
@@ -102,13 +84,18 @@ trait DependenciesOps extends JarsOps {
   private def excludeDependenciesWithAppLibPlugin(refs: Seq[ProjectRef], stateTask: Task[State]): Task[Seq[Attributed[File]]] = {
     refs.foldLeft[Task[Seq[Attributed[File]]]](task(Nil)) { (acc, ref) =>
       for {
-        exclude <- projectHaveEnabledAppLibPlugin(stateTask, ref)
+        exclude <- projectHaveEnabledAppLibPluginOld(stateTask, ref)
         result <- if (exclude) task(Seq.empty[Attributed[File]]) else extractArtifacts(stateTask, ref)
       } yield result
     }
   }
 
-  private def projectHaveEnabledAppLibPlugin(stateTask: Task[State], ref: ProjectRef): Task[Boolean] = {
+  private def projectHaveEnabledAppLibPlugin(extState: Extracted, ref: ProjectRef): Boolean = {
+    val units = extState.structure.units.values
+    units.exists(u => enabledAppLibPlugin(u, ref.project))
+  }
+
+  private def projectHaveEnabledAppLibPluginOld(stateTask: Task[State], ref: ProjectRef): Task[Boolean] = {
     for {
       state <- stateTask
       _ = println(s"====================== state in excludeDependenciesWithAppLibPlugin is : ${state}")

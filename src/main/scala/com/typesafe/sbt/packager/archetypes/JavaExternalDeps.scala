@@ -4,7 +4,7 @@ package archetypes
 
 import com.typesafe.sbt.packager.archetypes.JavaAppPackaging.autoImport._
 import sbt._
-import sbt.Keys.{ dependencyClasspath, mappings }
+import sbt.Keys._
 import SbtNativePackager.Universal
 
 object JavaExternalDepsPackaging extends AutoPlugin with JarsOps with DependenciesOps {
@@ -72,8 +72,12 @@ object JavaExternalDepsPackaging extends AutoPlugin with JarsOps with Dependenci
     // 3. artifacts of dependsOn projects, that have JavaLibPackaging plugin(absolute path)
     scriptClasspath <<= scriptClasspathOrdering map makeRelativeClasspathNames,
 
-    scriptClasspath <<= (javaLibsAbsolutePath) map { v =>
-      v.value
+    scriptClasspath := {
+      val prev = scriptClasspath.value
+      val jLibAbsoluteCp = javaLibsProjects(buildDependencies.value, thisProjectRef.value, Project.extract(state.value)) flatMap { ref =>
+        javaLibAbsoluteClassPath((javaLibraryPath in ref).value, ((dependencyClasspath in Runtime) in ref).value)
+      }
+      prev ++ jLibAbsoluteCp
     },
 
 
