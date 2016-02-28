@@ -54,15 +54,24 @@ object JavaAppPackaging extends AutoPlugin with JavaAppStartScript {
     javaOptions in Universal := Nil,
     // Here we record the classpath as it's added to the mappings separately, so
     // we can use its order to generate the bash/bat scripts.
+
+    //no classpath
     scriptClasspathOrdering := Nil,
     // Note: This is sometimes on the classpath via dependencyClasspath in Runtime.
     // We need to figure out why sometimes the Attributed[File] is correctly configured
     // and sometimes not.
+
+    // path for this artifact jar(or jars????)
     scriptClasspathOrdering <+= (Keys.packageBin in Compile, Keys.projectID, Keys.artifact in Compile in Keys.packageBin) map { (jar, id, art) =>
+      // will be something like: lib/im.actor.server.actor-core-1.0.151.jar
       jar -> ("lib/" + makeJarName(id.organization, id.name, id.revision, art.name, art.classifier))
     },
+
+    //find dependency artifacts
     projectDependencyArtifacts <<= findProjectDependencyArtifacts,
     scriptClasspathOrdering <++= (Keys.dependencyClasspath in Runtime, projectDependencyArtifacts) map universalDepMappings,
+
+    //unique only
     scriptClasspathOrdering <<= (scriptClasspathOrdering) map { _.distinct },
     mappings in Universal <++= scriptClasspathOrdering,
     scriptClasspath <<= scriptClasspathOrdering map makeRelativeClasspathNames,
@@ -100,11 +109,12 @@ object JavaAppPackaging extends AutoPlugin with JavaAppStartScript {
       val hasMain =
         for {
           cn <- mainClass
-        } yield JavaAppBashScript.makeDefines(cn, appClasspath = cp, extras = extras, configFile = config)
+        } yield JavaAppBashScript.makeDefines(cn, appClasspath = cp, extras = extras, configFile = config) //config file here is application.ini
       hasMain getOrElse Nil
     },
     bashScriptTemplateLocation := (sourceDirectory.value / "templates" / bashTemplate),
     makeBashScript <<= (bashScriptTemplateLocation, bashScriptDefines, target in Universal, executableScriptName, sourceDirectory) map makeUniversalBinScript,
+
     batScriptExtraDefines := Nil,
     batScriptReplacements <<= (packageName, Keys.mainClass in (Compile, batScriptReplacements), scriptClasspath in batScriptReplacements, batScriptExtraDefines) map { (name, mainClass, cp, extras) =>
       mainClass map { mc =>
@@ -202,11 +212,17 @@ object JavaAppPackaging extends AutoPlugin with JavaAppStartScript {
       !(name.endsWith(".jar") || name.endsWith("-sources.jar") || name.endsWith("-javadoc.jar"))
     }
 
+  // finds runtime artifacts produced by this project and all dependent projects
   private def findProjectDependencyArtifacts: Def.Initialize[Task[Seq[Attributed[File]]]] =
     (sbt.Keys.buildDependencies, sbt.Keys.thisProjectRef, sbt.Keys.state) apply { (build, thisProject, stateTask) =>
+
+      // get this project and build dependencies of this project
       val refs = thisProject +: dependencyProjectRefs(build, thisProject)
       // Dynamic lookup of dependencies...
-      val artTasks = (refs) map { ref => extractArtifacts(stateTask, ref) }
+      val artTasks = (refs) map { ref =>
+        extractArtifacts(stateTask, ref) }
+
+      // leave only runtime artifacts
       val allArtifactsTask: Task[Seq[Attributed[File]]] =
         artTasks.fold[Task[Seq[Attributed[File]]]](task(Nil)) { (previous, next) =>
           for {

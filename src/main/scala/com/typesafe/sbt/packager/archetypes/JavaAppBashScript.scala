@@ -32,10 +32,26 @@ object JavaAppBashScript {
       Seq(makeClasspathDefine(appClasspath)) ++
       extras
 
+  def makeJavaLibDefines(
+    mainClass: String,
+    appClasspath: Seq[String] = Seq("*"),
+    configFile: Option[String] = None,
+    extras: Seq[String] = Nil): Seq[String] =
+    Seq(mainClassDefine(mainClass)) ++
+      (configFile map configFileDefine).toSeq ++
+      Seq(makeJavaLibClasspathDefine(appClasspath)) ++
+      extras
+
   private def makeClasspathDefine(cp: Seq[String]): String = {
     val fullString = cp map (n => "$lib_dir/" + n) mkString ":"
     "declare -r app_classpath=\"" + fullString + "\"\n"
   }
+
+  private def makeJavaLibClasspathDefine(cp: Seq[String]): String = {
+    val fullString = cp mkString ":"
+    "declare -r app_classpath=\"" + fullString + "\"\n"
+  }
+
   def generateScript(defines: Seq[String], template: URL = bashTemplateSource): String = {
     val defineString = defines mkString "\n"
     val replacements = Seq("template_declares" -> defineString)
